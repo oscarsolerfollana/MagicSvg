@@ -1,0 +1,407 @@
+namespace MagicSvg
+{
+    partial class Form1
+    {
+        private System.ComponentModel.IContainer components = null;
+
+        // Toolbar
+        private System.Windows.Forms.ToolStrip toolStrip;
+        private System.Windows.Forms.ToolStripButton btnOpen;
+        private System.Windows.Forms.ToolStripButton btnProcess;
+        private System.Windows.Forms.ToolStripButton btnSave;
+
+        // Imágenes (cuadrícula 3×2)
+        private System.Windows.Forms.SplitContainer splitMain;
+        private System.Windows.Forms.TableLayoutPanel tableImages;
+
+        private System.Windows.Forms.Panel panelOriginal;
+        private System.Windows.Forms.Panel panelBinary;
+        private System.Windows.Forms.Panel panelHoughRaw;
+        private System.Windows.Forms.Panel panelClassified;
+        private System.Windows.Forms.Panel panelMerged;
+        private System.Windows.Forms.Panel panelResult;
+
+        private System.Windows.Forms.Label lblOriginal;
+        private System.Windows.Forms.Label lblBinary;
+        private System.Windows.Forms.Label lblHoughRaw;
+        private System.Windows.Forms.Label lblClassified;
+        private System.Windows.Forms.Label lblMerged;
+        private System.Windows.Forms.Label lblResult;
+
+        private System.Windows.Forms.PictureBox picOriginal;
+        private System.Windows.Forms.PictureBox picBinary;
+        private System.Windows.Forms.PictureBox picHoughRaw;
+        private System.Windows.Forms.PictureBox picClassified;
+        private System.Windows.Forms.PictureBox picMerged;
+        private System.Windows.Forms.PictureBox picResult;
+
+        // Parámetros
+        private System.Windows.Forms.NumericUpDown numBinaryThreshold;
+        private System.Windows.Forms.NumericUpDown numDilationKernelSize;
+        private System.Windows.Forms.NumericUpDown numDilationIterations;
+        private System.Windows.Forms.NumericUpDown numHoughThreshold;
+        private System.Windows.Forms.NumericUpDown numMinLineLength;
+        private System.Windows.Forms.NumericUpDown numMaxLineGap;
+        private System.Windows.Forms.NumericUpDown numAngleTolerance;
+        private System.Windows.Forms.NumericUpDown numMergePositionTolerance;
+        private System.Windows.Forms.NumericUpDown numSegmentGapTolerance;
+        private System.Windows.Forms.NumericUpDown numMinOutputLength;
+        private System.Windows.Forms.NumericUpDown numLineThickness;
+        private System.Windows.Forms.NumericUpDown numSnapTolerance;
+        private System.Windows.Forms.Button btnReset;
+        private System.Windows.Forms.CheckBox chkAutoProcess;
+
+        // Status
+        private System.Windows.Forms.StatusStrip statusStrip;
+        private System.Windows.Forms.ToolStripStatusLabel lblStatus;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+                components.Dispose();
+            base.Dispose(disposing);
+        }
+
+        #region Windows Form Designer generated code
+
+        private void InitializeComponent()
+        {
+            components = new System.ComponentModel.Container();
+
+            toolStrip   = new System.Windows.Forms.ToolStrip();
+            btnOpen     = new System.Windows.Forms.ToolStripButton();
+            btnProcess  = new System.Windows.Forms.ToolStripButton();
+            btnSave     = new System.Windows.Forms.ToolStripButton();
+            splitMain   = new System.Windows.Forms.SplitContainer();
+            tableImages = new System.Windows.Forms.TableLayoutPanel();
+
+            panelOriginal   = new System.Windows.Forms.Panel();
+            panelBinary     = new System.Windows.Forms.Panel();
+            panelHoughRaw   = new System.Windows.Forms.Panel();
+            panelClassified = new System.Windows.Forms.Panel();
+            panelMerged     = new System.Windows.Forms.Panel();
+            panelResult     = new System.Windows.Forms.Panel();
+
+            lblOriginal   = new System.Windows.Forms.Label();
+            lblBinary     = new System.Windows.Forms.Label();
+            lblHoughRaw   = new System.Windows.Forms.Label();
+            lblClassified = new System.Windows.Forms.Label();
+            lblMerged     = new System.Windows.Forms.Label();
+            lblResult     = new System.Windows.Forms.Label();
+
+            picOriginal   = new System.Windows.Forms.PictureBox();
+            picBinary     = new System.Windows.Forms.PictureBox();
+            picHoughRaw   = new System.Windows.Forms.PictureBox();
+            picClassified = new System.Windows.Forms.PictureBox();
+            picMerged     = new System.Windows.Forms.PictureBox();
+            picResult     = new System.Windows.Forms.PictureBox();
+
+            numBinaryThreshold        = CreateNum( 0,  255, 200);
+            numDilationKernelSize     = CreateNum( 1,   21,   3);
+            numDilationIterations     = CreateNum( 0,   10,   1);
+            numHoughThreshold         = CreateNum(10,  200,  40);
+            numMinLineLength          = CreateNum( 5,  500,  20);
+            numMaxLineGap             = CreateNum( 0,  200,  15);
+            numAngleTolerance         = CreateNum( 1,   44,  28);
+            numMergePositionTolerance = CreateNum( 1,  200,  30);
+            numSegmentGapTolerance    = CreateNum( 0,  300,  35);
+            numMinOutputLength        = CreateNum( 0,  500,  30);
+            numLineThickness          = CreateNum( 1,   10,   2);
+            numSnapTolerance          = CreateNum( 0,   50,   8);
+            btnReset       = new System.Windows.Forms.Button();
+            chkAutoProcess = new System.Windows.Forms.CheckBox();
+            statusStrip    = new System.Windows.Forms.StatusStrip();
+            lblStatus      = new System.Windows.Forms.ToolStripStatusLabel();
+
+            numBinaryThreshold.ValueChanged        += Num_ValueChanged;
+            numDilationKernelSize.ValueChanged     += Num_ValueChanged;
+            numDilationIterations.ValueChanged     += Num_ValueChanged;
+            numHoughThreshold.ValueChanged         += Num_ValueChanged;
+            numMinLineLength.ValueChanged          += Num_ValueChanged;
+            numMaxLineGap.ValueChanged             += Num_ValueChanged;
+            numAngleTolerance.ValueChanged         += Num_ValueChanged;
+            numMergePositionTolerance.ValueChanged += Num_ValueChanged;
+            numSegmentGapTolerance.ValueChanged    += Num_ValueChanged;
+            numMinOutputLength.ValueChanged        += Num_ValueChanged;
+            numLineThickness.ValueChanged          += Num_ValueChanged;
+            numSnapTolerance.ValueChanged          += Num_ValueChanged;
+
+            splitMain.SuspendLayout();
+            splitMain.Panel1.SuspendLayout();
+            splitMain.Panel2.SuspendLayout();
+            tableImages.SuspendLayout();
+            SuspendLayout();
+
+            // ── ToolStrip ───────────────────────────────────────────────────
+            toolStrip.Dock      = System.Windows.Forms.DockStyle.Top;
+            toolStrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
+            toolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[]
+            {
+                btnOpen, btnProcess,
+                new System.Windows.Forms.ToolStripSeparator(),
+                btnSave
+            });
+
+            btnOpen.Text         = "📂  Abrir imagen";
+            btnOpen.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            btnOpen.Click       += BtnOpen_Click;
+
+            btnProcess.Text         = "⚙  Procesar";
+            btnProcess.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            btnProcess.Enabled      = false;
+            btnProcess.Click       += BtnProcess_Click;
+
+            btnSave.Text         = "💾  Guardar resultado";
+            btnSave.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            btnSave.Enabled      = false;
+            btnSave.Click       += BtnSave_Click;
+
+            // ── SplitContainer ─────────────────────────────────────────────
+            splitMain.Dock          = System.Windows.Forms.DockStyle.Fill;
+            splitMain.Orientation   = System.Windows.Forms.Orientation.Vertical;
+            splitMain.FixedPanel    = System.Windows.Forms.FixedPanel.Panel2;
+            splitMain.SplitterWidth = 4;
+
+            // ── TableLayoutPanel 3×2 ───────────────────────────────────────
+            tableImages.Dock        = System.Windows.Forms.DockStyle.Fill;
+            tableImages.ColumnCount = 3;
+            tableImages.RowCount    = 2;
+            tableImages.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(
+                System.Windows.Forms.SizeType.Percent, 33.33F));
+            tableImages.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(
+                System.Windows.Forms.SizeType.Percent, 33.34F));
+            tableImages.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(
+                System.Windows.Forms.SizeType.Percent, 33.33F));
+            tableImages.RowStyles.Add(new System.Windows.Forms.RowStyle(
+                System.Windows.Forms.SizeType.Percent, 50F));
+            tableImages.RowStyles.Add(new System.Windows.Forms.RowStyle(
+                System.Windows.Forms.SizeType.Percent, 50F));
+            tableImages.Padding = new System.Windows.Forms.Padding(4);
+
+            // ── Fuente para etiquetas ──────────────────────────────────────
+            var imgFont = new System.Drawing.Font(
+                "Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+
+            // ── Crear los 6 paneles ────────────────────────────────────────
+            SetupImagePanel(panelOriginal,   picOriginal,   lblOriginal,
+                "Original",                       imgFont);
+            SetupImagePanel(panelBinary,     picBinary,     lblBinary,
+                "① Binarización",                      imgFont);
+            SetupImagePanel(panelHoughRaw,   picHoughRaw,   lblHoughRaw,
+                "② Transformada de Hough",                  imgFont);
+            SetupImagePanel(panelClassified, picClassified, lblClassified,
+                "③ Clasificación  (azul=H  rojo=V)", imgFont);
+            SetupImagePanel(panelMerged,     picMerged,     lblMerged,
+                "④ Unificación de paralelas",                   imgFont);
+            SetupImagePanel(panelResult,     picResult,     lblResult,
+                "⑤ Extensión/recorte",               imgFont);
+
+            // Fila 0: Original | Binario | Hough crudo
+            tableImages.Controls.Add(panelOriginal,   0, 0);
+            tableImages.Controls.Add(panelBinary,     1, 0);
+            tableImages.Controls.Add(panelHoughRaw,   2, 0);
+            // Fila 1: Clasificados | Fusionados | Resultado
+            tableImages.Controls.Add(panelClassified, 0, 1);
+            tableImages.Controls.Add(panelMerged,     1, 1);
+            tableImages.Controls.Add(panelResult,     2, 1);
+
+            // ── Botón reset ────────────────────────────────────────────────
+            btnReset.Text   = "Restablecer valores";
+            btnReset.Height = 28;
+            btnReset.Click += BtnReset_Click;
+
+            // ── Ensamblar SplitContainer ───────────────────────────────────
+            splitMain.Panel1.Controls.Add(tableImages);
+            splitMain.Panel2.AutoScroll = true;
+            splitMain.Panel2.Controls.Add(BuildSettingsPanel());
+
+            // ── StatusStrip ────────────────────────────────────────────────
+            lblStatus.Text   = "Listo. Abre una imagen para comenzar.";
+            lblStatus.Spring = true;
+            statusStrip.Items.Add(lblStatus);
+
+            // ── Form ───────────────────────────────────────────────────────
+            Controls.Add(splitMain);
+            Controls.Add(toolStrip);
+            Controls.Add(statusStrip);
+
+            tableImages.ResumeLayout(false);
+            splitMain.Panel1.ResumeLayout(false);
+            splitMain.Panel2.ResumeLayout(false);
+            splitMain.ResumeLayout(false);
+
+            ClientSize    = new System.Drawing.Size(1440, 820);
+            MinimumSize   = new System.Drawing.Size(1000, 580);
+            Text          = "MagicSvg – Rectificador de líneas";
+            StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            ResumeLayout(false);
+            PerformLayout();
+            splitMain.Panel1MinSize    = 600;
+            splitMain.Panel2MinSize    = 250;
+            splitMain.SplitterDistance = 1140;
+        }
+
+        // ── Helper: construye un panel de imagen ──────────────────────────────
+
+        private static void SetupImagePanel(
+            System.Windows.Forms.Panel        panel,
+            System.Windows.Forms.PictureBox   pic,
+            System.Windows.Forms.Label        lbl,
+            string                            title,
+            System.Drawing.Font               font)
+        {
+            lbl.Text      = title;
+            lbl.Dock      = System.Windows.Forms.DockStyle.Top;
+            lbl.Height    = 22;
+            lbl.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            lbl.Font      = font;
+
+            ((System.ComponentModel.ISupportInitialize)pic).BeginInit();
+            pic.SizeMode    = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            pic.Dock        = System.Windows.Forms.DockStyle.Fill;
+            pic.BackColor   = System.Drawing.Color.FromArgb(224, 224, 224);
+            pic.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            ((System.ComponentModel.ISupportInitialize)pic).EndInit();
+
+            panel.Dock    = System.Windows.Forms.DockStyle.Fill;
+            panel.Padding = new System.Windows.Forms.Padding(3);
+            panel.Controls.Add(pic);
+            panel.Controls.Add(lbl);
+        }
+
+        // ── Construcción del panel de parámetros ──────────────────────────────
+
+        private System.Windows.Forms.TableLayoutPanel BuildSettingsPanel()
+        {
+            var nFont = new System.Drawing.Font("Segoe UI", 8.5F);
+            var bFont = new System.Drawing.Font(
+                "Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
+            var sFont = new System.Drawing.Font(
+                "Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
+
+            var tbl = new System.Windows.Forms.TableLayoutPanel
+            {
+                ColumnCount  = 2,
+                RowCount     = 0,
+                AutoSize     = true,
+                AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink,
+                Dock         = System.Windows.Forms.DockStyle.Top,
+                Padding      = new System.Windows.Forms.Padding(8, 6, 8, 8)
+            };
+            tbl.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(
+                System.Windows.Forms.SizeType.Percent, 100F));
+            tbl.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(
+                System.Windows.Forms.SizeType.Absolute, 68F));
+
+            int r = SAddRow(tbl, 34);
+            var title = new System.Windows.Forms.Label
+            {
+                Text      = "⚙  Parámetros",
+                Font      = bFont,
+                Dock      = System.Windows.Forms.DockStyle.Fill,
+                TextAlign = System.Drawing.ContentAlignment.MiddleLeft,
+                AutoSize  = false
+            };
+            tbl.Controls.Add(title, 0, r);
+            tbl.SetColumnSpan(title, 2);
+
+            SAddSection(tbl, sFont, "Binarización");
+            SAddParam(tbl, nFont, "Umbral (0-255):",          numBinaryThreshold);
+            SAddParam(tbl, nFont, "Kernel dilatación (px):",  numDilationKernelSize);
+            SAddParam(tbl, nFont, "Iteraciones dilatación:",  numDilationIterations);
+
+            SAddSection(tbl, sFont, "Detección (Hough)");
+            SAddParam(tbl, nFont, "Umbral votos:",           numHoughThreshold);
+            SAddParam(tbl, nFont, "Long. mín. det. (px):",   numMinLineLength);
+            SAddParam(tbl, nFont, "Hueco máx. Hough (px):",  numMaxLineGap);
+            SAddParam(tbl, nFont, "Tolerancia ángulo (°):",  numAngleTolerance);
+
+            SAddSection(tbl, sFont, "Unificación de paralelas");
+            SAddParam(tbl, nFont, "Tolerancia posición (px):", numMergePositionTolerance);
+            SAddParam(tbl, nFont, "Hueco segmentos (px):",     numSegmentGapTolerance);
+
+            SAddSection(tbl, sFont, "Resultado");
+            SAddParam(tbl, nFont, "Long. mín. salida (px):", numMinOutputLength);
+            SAddParam(tbl, nFont, "Grosor de líneas (px):",  numLineThickness);
+
+            SAddSection(tbl, sFont, "Extensión");
+            SAddParam(tbl, nFont, "Tolerancia snap (px):",   numSnapTolerance);
+
+            r = SAddRow(tbl, 28);
+            chkAutoProcess.Text   = "⚡  Procesar al cambiar valores";
+            chkAutoProcess.Dock   = System.Windows.Forms.DockStyle.Fill;
+            chkAutoProcess.Font   = nFont;
+            chkAutoProcess.Margin = new System.Windows.Forms.Padding(0, 6, 0, 2);
+            tbl.Controls.Add(chkAutoProcess, 0, r);
+            tbl.SetColumnSpan(chkAutoProcess, 2);
+
+            r = SAddRow(tbl, 36);
+            btnReset.Dock   = System.Windows.Forms.DockStyle.Fill;
+            btnReset.Margin = new System.Windows.Forms.Padding(0, 6, 0, 4);
+            tbl.Controls.Add(btnReset, 0, r);
+            tbl.SetColumnSpan(btnReset, 2);
+
+            return tbl;
+        }
+
+        private static int SAddRow(
+            System.Windows.Forms.TableLayoutPanel tbl, int height)
+        {
+            int idx = tbl.RowCount;
+            tbl.RowStyles.Add(new System.Windows.Forms.RowStyle(
+                System.Windows.Forms.SizeType.Absolute, (float)height));
+            tbl.RowCount++;
+            return idx;
+        }
+
+        private static void SAddSection(
+            System.Windows.Forms.TableLayoutPanel tbl,
+            System.Drawing.Font font, string text)
+        {
+            int r = SAddRow(tbl, 30);
+            var lbl = new System.Windows.Forms.Label
+            {
+                Text      = text,
+                Font      = font,
+                Dock      = System.Windows.Forms.DockStyle.Fill,
+                TextAlign = System.Drawing.ContentAlignment.BottomLeft,
+                ForeColor = System.Drawing.SystemColors.ControlDarkDark,
+                Padding   = new System.Windows.Forms.Padding(0, 8, 0, 0),
+                AutoSize  = false
+            };
+            tbl.Controls.Add(lbl, 0, r);
+            tbl.SetColumnSpan(lbl, 2);
+        }
+
+        private static void SAddParam(
+            System.Windows.Forms.TableLayoutPanel tbl,
+            System.Drawing.Font font, string text,
+            System.Windows.Forms.NumericUpDown num)
+        {
+            int r = SAddRow(tbl, 26);
+            var lbl = new System.Windows.Forms.Label
+            {
+                Text      = text,
+                Font      = font,
+                Dock      = System.Windows.Forms.DockStyle.Fill,
+                TextAlign = System.Drawing.ContentAlignment.MiddleLeft,
+                AutoSize  = false
+            };
+            num.Dock = System.Windows.Forms.DockStyle.Fill;
+            num.Font = font;
+            tbl.Controls.Add(lbl, 0, r);
+            tbl.Controls.Add(num, 1, r);
+        }
+
+        private static System.Windows.Forms.NumericUpDown CreateNum(
+            decimal min, decimal max, decimal value)
+        {
+            return new System.Windows.Forms.NumericUpDown
+            {
+                Minimum = min, Maximum = max, Value = value, Increment = 1
+            };
+        }
+
+        #endregion
+    }
+}
