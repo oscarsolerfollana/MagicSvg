@@ -16,6 +16,7 @@ namespace MagicSvg
 
         private System.Windows.Forms.Panel panelOriginal;
         private System.Windows.Forms.Panel panelBinary;
+        private System.Windows.Forms.Panel panelArtifacts;
         private System.Windows.Forms.Panel panelHoughRaw;
         private System.Windows.Forms.Panel panelClassified;
         private System.Windows.Forms.Panel panelMerged;
@@ -23,6 +24,7 @@ namespace MagicSvg
 
         private System.Windows.Forms.Label lblOriginal;
         private System.Windows.Forms.Label lblBinary;
+        private System.Windows.Forms.Label lblArtifacts;
         private System.Windows.Forms.Label lblHoughRaw;
         private System.Windows.Forms.Label lblClassified;
         private System.Windows.Forms.Label lblMerged;
@@ -30,6 +32,7 @@ namespace MagicSvg
 
         private System.Windows.Forms.PictureBox picOriginal;
         private System.Windows.Forms.PictureBox picBinary;
+        private System.Windows.Forms.PictureBox picArtifacts;
         private System.Windows.Forms.PictureBox picHoughRaw;
         private System.Windows.Forms.PictureBox picClassified;
         private System.Windows.Forms.PictureBox picMerged;
@@ -39,6 +42,7 @@ namespace MagicSvg
         private System.Windows.Forms.NumericUpDown numBinaryThreshold;
         private System.Windows.Forms.NumericUpDown numDilationKernelSize;
         private System.Windows.Forms.NumericUpDown numDilationIterations;
+        private System.Windows.Forms.NumericUpDown numMinComponentArea;
         private System.Windows.Forms.NumericUpDown numHoughThreshold;
         private System.Windows.Forms.NumericUpDown numMinLineLength;
         private System.Windows.Forms.NumericUpDown numMaxLineGap;
@@ -77,6 +81,7 @@ namespace MagicSvg
 
             panelOriginal   = new System.Windows.Forms.Panel();
             panelBinary     = new System.Windows.Forms.Panel();
+            panelArtifacts  = new System.Windows.Forms.Panel();
             panelHoughRaw   = new System.Windows.Forms.Panel();
             panelClassified = new System.Windows.Forms.Panel();
             panelMerged     = new System.Windows.Forms.Panel();
@@ -84,6 +89,7 @@ namespace MagicSvg
 
             lblOriginal   = new System.Windows.Forms.Label();
             lblBinary     = new System.Windows.Forms.Label();
+            lblArtifacts  = new System.Windows.Forms.Label();
             lblHoughRaw   = new System.Windows.Forms.Label();
             lblClassified = new System.Windows.Forms.Label();
             lblMerged     = new System.Windows.Forms.Label();
@@ -91,6 +97,7 @@ namespace MagicSvg
 
             picOriginal   = new System.Windows.Forms.PictureBox();
             picBinary     = new System.Windows.Forms.PictureBox();
+            picArtifacts  = new System.Windows.Forms.PictureBox();
             picHoughRaw   = new System.Windows.Forms.PictureBox();
             picClassified = new System.Windows.Forms.PictureBox();
             picMerged     = new System.Windows.Forms.PictureBox();
@@ -99,10 +106,11 @@ namespace MagicSvg
             numBinaryThreshold        = CreateNum( 0,  255, 200);
             numDilationKernelSize     = CreateNum( 1,   21,   3);
             numDilationIterations     = CreateNum( 0,   10,   1);
+            numMinComponentArea       = CreateNum( 0, 50000, 500);
             numHoughThreshold         = CreateNum(10,  200,  40);
             numMinLineLength          = CreateNum( 5,  500,  20);
             numMaxLineGap             = CreateNum( 0,  200,  15);
-            numAngleTolerance         = CreateNum( 1,   44,  28);
+            numAngleTolerance         = CreateNum( 1,   44,  10);
             numMergePositionTolerance = CreateNum( 1,  200,  30);
             numSegmentGapTolerance    = CreateNum( 0,  300,  35);
             numMinOutputLength        = CreateNum( 0,  500,  30);
@@ -116,6 +124,7 @@ namespace MagicSvg
             numBinaryThreshold.ValueChanged        += Num_ValueChanged;
             numDilationKernelSize.ValueChanged     += Num_ValueChanged;
             numDilationIterations.ValueChanged     += Num_ValueChanged;
+            numMinComponentArea.ValueChanged       += Num_ValueChanged;
             numHoughThreshold.ValueChanged         += Num_ValueChanged;
             numMinLineLength.ValueChanged          += Num_ValueChanged;
             numMaxLineGap.ValueChanged             += Num_ValueChanged;
@@ -162,16 +171,18 @@ namespace MagicSvg
             splitMain.FixedPanel    = System.Windows.Forms.FixedPanel.Panel2;
             splitMain.SplitterWidth = 4;
 
-            // ── TableLayoutPanel 3×2 ───────────────────────────────────────
+            // ── TableLayoutPanel 4×2 ───────────────────────────────────────
             tableImages.Dock        = System.Windows.Forms.DockStyle.Fill;
-            tableImages.ColumnCount = 3;
+            tableImages.ColumnCount = 4;
             tableImages.RowCount    = 2;
             tableImages.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(
-                System.Windows.Forms.SizeType.Percent, 33.33F));
+                System.Windows.Forms.SizeType.Percent, 25F));
             tableImages.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(
-                System.Windows.Forms.SizeType.Percent, 33.34F));
+                System.Windows.Forms.SizeType.Percent, 25F));
             tableImages.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(
-                System.Windows.Forms.SizeType.Percent, 33.33F));
+                System.Windows.Forms.SizeType.Percent, 25F));
+            tableImages.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(
+                System.Windows.Forms.SizeType.Percent, 25F));
             tableImages.RowStyles.Add(new System.Windows.Forms.RowStyle(
                 System.Windows.Forms.SizeType.Percent, 50F));
             tableImages.RowStyles.Add(new System.Windows.Forms.RowStyle(
@@ -182,24 +193,27 @@ namespace MagicSvg
             var imgFont = new System.Drawing.Font(
                 "Segoe UI", 9F, System.Drawing.FontStyle.Bold);
 
-            // ── Crear los 6 paneles ────────────────────────────────────────
+            // ── Crear los 7 paneles ────────────────────────────────────────
             SetupImagePanel(panelOriginal,   picOriginal,   lblOriginal,
                 "Original",                       imgFont);
             SetupImagePanel(panelBinary,     picBinary,     lblBinary,
                 "① Binarización",                      imgFont);
+            SetupImagePanel(panelArtifacts,  picArtifacts,  lblArtifacts,
+                "② Eliminación de artefactos  (rojo=descartado)", imgFont);
             SetupImagePanel(panelHoughRaw,   picHoughRaw,   lblHoughRaw,
-                "② Transformada de Hough",                  imgFont);
+                "③ Transformada de Hough",                  imgFont);
             SetupImagePanel(panelClassified, picClassified, lblClassified,
-                "③ Clasificación  (azul=H  rojo=V)", imgFont);
+                "④ Clasificación  (azul=0°  rojo=90°  colores=diagonales)", imgFont);
             SetupImagePanel(panelMerged,     picMerged,     lblMerged,
-                "④ Unificación de paralelas",                   imgFont);
+                "⑤ Unificación de paralelas",                   imgFont);
             SetupImagePanel(panelResult,     picResult,     lblResult,
-                "⑤ Extensión/recorte",               imgFont);
+                "⑥ Extensión/recorte",               imgFont);
 
-            // Fila 0: Original | Binario | Hough crudo
+            // Fila 0: Original | Binario | Artefactos | Hough crudo
             tableImages.Controls.Add(panelOriginal,   0, 0);
             tableImages.Controls.Add(panelBinary,     1, 0);
-            tableImages.Controls.Add(panelHoughRaw,   2, 0);
+            tableImages.Controls.Add(panelArtifacts,  2, 0);
+            tableImages.Controls.Add(panelHoughRaw,   3, 0);
             // Fila 1: Clasificados | Fusionados | Resultado
             tableImages.Controls.Add(panelClassified, 0, 1);
             tableImages.Controls.Add(panelMerged,     1, 1);
@@ -309,6 +323,7 @@ namespace MagicSvg
             SAddParam(tbl, nFont, "Umbral (0-255):",          numBinaryThreshold);
             SAddParam(tbl, nFont, "Kernel dilatación (px):",  numDilationKernelSize);
             SAddParam(tbl, nFont, "Iteraciones dilatación:",  numDilationIterations);
+            SAddParam(tbl, nFont, "Área mín. componente (px²):", numMinComponentArea);
 
             SAddSection(tbl, sFont, "Detección (Hough)");
             SAddParam(tbl, nFont, "Umbral votos:",           numHoughThreshold);

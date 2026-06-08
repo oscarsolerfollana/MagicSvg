@@ -4,6 +4,7 @@ namespace MagicSvg
     {
         private Bitmap? _original;
         private Bitmap? _binary;
+        private Bitmap? _artifacts;
         private Bitmap? _houghRaw;
         private Bitmap? _classified;
         private Bitmap? _merged;
@@ -31,6 +32,7 @@ namespace MagicSvg
             _original = new Bitmap(dlg.FileName);
             picOriginal.Image    = _original;
             picBinary.Image      = null;
+            picArtifacts.Image   = null;
             picHoughRaw.Image    = null;
             picClassified.Image  = null;
             picMerged.Image      = null;
@@ -42,7 +44,7 @@ namespace MagicSvg
                 $"Imagen cargada: {Path.GetFileName(dlg.FileName)}  " +
                 $"({_original.Width} × {_original.Height} px)";
 
-            TryAutoProcess();
+            ProcessImageOnLoad();
         }
 
         // ── Procesar ────────────────────────────────────────────────────────
@@ -62,10 +64,11 @@ namespace MagicSvg
                     BinaryThreshold        = (int)numBinaryThreshold.Value,
                     DilationKernelSize     = (int)numDilationKernelSize.Value,
                     DilationIterations     = (int)numDilationIterations.Value,
+                    MinComponentArea       = (int)numMinComponentArea.Value,
                     HoughThreshold         = (int)numHoughThreshold.Value,
                     MinLineLength          = (int)numMinLineLength.Value,
                     MaxLineGap             = (int)numMaxLineGap.Value,
-                    AngleToleranceDeg      = (double)numAngleTolerance.Value,
+                    AngleSnapTolerance     = (double)numAngleTolerance.Value,
                     MergePositionTolerance = (int)numMergePositionTolerance.Value,
                     SegmentGapTolerance    = (int)numSegmentGapTolerance.Value,
                     MinOutputSegmentLength = (int)numMinOutputLength.Value,
@@ -77,12 +80,14 @@ namespace MagicSvg
 
                 var phases = LineProcessor.ProcessImageDetailed(_original, settings);
                 _binary     = phases.Binary;
+                _artifacts  = phases.Artifacts;
                 _houghRaw   = phases.HoughRaw;
                 _classified = phases.Classified;
                 _merged     = phases.Merged;
                 _result     = phases.Final;
 
                 picBinary.Image      = _binary;
+                picArtifacts.Image   = _artifacts;
                 picHoughRaw.Image    = _houghRaw;
                 picClassified.Image  = _classified;
                 picMerged.Image      = _merged;
@@ -112,10 +117,11 @@ namespace MagicSvg
             numBinaryThreshold.Value        = d.BinaryThreshold;
             numDilationKernelSize.Value     = d.DilationKernelSize;
             numDilationIterations.Value     = d.DilationIterations;
+            numMinComponentArea.Value       = d.MinComponentArea;
             numHoughThreshold.Value         = d.HoughThreshold;
             numMinLineLength.Value          = d.MinLineLength;
             numMaxLineGap.Value             = d.MaxLineGap;
-            numAngleTolerance.Value         = (decimal)d.AngleToleranceDeg;
+            numAngleTolerance.Value         = (decimal)d.AngleSnapTolerance;
             numMergePositionTolerance.Value = d.MergePositionTolerance;
             numSegmentGapTolerance.Value    = d.SegmentGapTolerance;
             numMinOutputLength.Value        = d.MinOutputSegmentLength;
@@ -158,6 +164,12 @@ namespace MagicSvg
             BtnProcess_Click(null, EventArgs.Empty);
         }
 
+        private void ProcessImageOnLoad()
+        {
+            if (_original is null) return;
+            BtnProcess_Click(null, EventArgs.Empty);
+        }
+
         private void Num_ValueChanged(object? sender, EventArgs e) => TryAutoProcess();
 
         // ── Helpers ─────────────────────────────────────────────────────────
@@ -165,6 +177,7 @@ namespace MagicSvg
         {
             _result?.Dispose();     _result     = null;
             _binary?.Dispose();     _binary     = null;
+            _artifacts?.Dispose();  _artifacts  = null;
             _houghRaw?.Dispose();   _houghRaw   = null;
             _classified?.Dispose(); _classified = null;
             _merged?.Dispose();     _merged     = null;
