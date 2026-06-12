@@ -9,6 +9,8 @@ namespace MagicSvg
         private Bitmap? _classified;
         private Bitmap? _merged;
         private Bitmap? _result;
+        private Bitmap? _minimalLines;
+        private Bitmap? _polygons;
         private List<LineProcessor.Segment>? _segments;
         private bool    _suspendAutoProcess;
 
@@ -38,6 +40,8 @@ namespace MagicSvg
             picClassified.Image  = null;
             picMerged.Image      = null;
             picResult.Image      = null;
+            picMinLines.Image    = null;
+            picPolygons.Image    = null;
 
             btnProcess.Enabled          = true;
             btnSave.Enabled             = false;
@@ -94,12 +98,21 @@ namespace MagicSvg
                 _result     = phases.Final;
                 _segments   = phases.Segments;
 
+                var minLineChains = SvgExporter.ComputeMinimalLineChains(_segments);
+                _minimalLines = SvgExporter.RenderMinimalLinesBitmap(
+                    minLineChains, phases.Width, phases.Height, settings.OutputLineThickness);
+
+                var faces = SvgExporter.ExtractFaces(_segments);
+                _polygons = SvgExporter.RenderFacesBitmap(faces, phases.Width, phases.Height);
+
                 picBinary.Image      = _binary;
                 picArtifacts.Image   = _artifacts;
                 picHoughRaw.Image    = _houghRaw;
                 picClassified.Image  = _classified;
                 picMerged.Image      = _merged;
                 picResult.Image      = _result;
+                picMinLines.Image    = _minimalLines;
+                picPolygons.Image    = _polygons;
 
                 btnSave.Enabled      = true;
                 btnExportSvg.Enabled = true;
@@ -236,12 +249,14 @@ namespace MagicSvg
         // ── Helpers ─────────────────────────────────────────────────────────
         private void DisposePhases()
         {
-            _result?.Dispose();     _result     = null;
-            _binary?.Dispose();     _binary     = null;
-            _artifacts?.Dispose();  _artifacts  = null;
-            _houghRaw?.Dispose();   _houghRaw   = null;
-            _classified?.Dispose(); _classified = null;
-            _merged?.Dispose();     _merged     = null;
+            _result?.Dispose();       _result       = null;
+            _binary?.Dispose();        _binary       = null;
+            _artifacts?.Dispose();     _artifacts    = null;
+            _houghRaw?.Dispose();      _houghRaw     = null;
+            _classified?.Dispose();    _classified   = null;
+            _merged?.Dispose();        _merged       = null;
+            _minimalLines?.Dispose();  _minimalLines = null;
+            _polygons?.Dispose();      _polygons     = null;
             _segments = null;
         }
     }

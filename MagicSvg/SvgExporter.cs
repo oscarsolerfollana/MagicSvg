@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -355,4 +356,92 @@ public static class SvgExporter
     /// </summary>
     public static string ExportPolygons(List<LineProcessor.Segment> segments, int width, int height)
         => RenderPolygonsSvg(ExtractFaces(segments), width, height);
+
+    // ── Visualización: líneas mínimas y polígonos ──────────────────────────
+
+    static readonly Color[] VizPalette =
+    [
+        Color.FromArgb(220,  20,  60), // Crimson
+        Color.FromArgb( 30, 144, 255), // DodgerBlue
+        Color.FromArgb( 50, 205,  50), // LimeGreen
+        Color.FromArgb(255, 140,   0), // DarkOrange
+        Color.FromArgb(148,   0, 211), // DarkViolet
+        Color.FromArgb(  0, 206, 209), // DarkTurquoise
+        Color.FromArgb(255,  20, 147), // DeepPink
+        Color.FromArgb(139,  69,  19), // SaddleBrown
+    ];
+
+    /// <summary>
+    /// Divide cada segmento en los sub-segmentos mínimos resultantes de cortarlo
+    /// por sus intersecciones con los demás, y devuelve para cada segmento
+    /// original la cadena ordenada de puntos que lo componen.
+    /// </summary>
+    public static List<List<Point>> ComputeMinimalLineChains(List<LineProcessor.Segment> segments)
+    {
+        var segs = segments
+            .Select(s => new Segment(new Point(s.X1, s.Y1), new Point(s.X2, s.Y2)))
+            .ToList();
+
+        return new GraphBuilder().BuildChains(segs);
+    }
+
+    /// <summary>
+    /// Dibuja las líneas mínimas (sub-segmentos tras cortarlas por sus
+    /// intersecciones). Cada sub-segmento usa un color de una paleta; dos
+    /// sub-segmentos consecutivos de la misma línea original siempre llevan
+    /// colores distintos para que se aprecien los puntos de corte, aunque el
+    /// mismo color pueda repetirse en otras líneas.
+    /// </summary>
+    public static Bitmap RenderMinimalLinesBitmap(
+        List<List<Point>> chains, int width, int height, int thickness = 2)
+    {
+        var bmp = new Bitmap(width, height);
+        using var g = Graphics.FromImage(bmp);
+        g.Clear(Color.White);
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+        for (int c = 0; c < chains.Count; c++)
+        {
+            var chain = chains[c];
+            for (int i = 0; i < chain.Count - 1; i++)
+            {
+                var a = chain[i];
+                var b = chain[i + 1];
+                if (a == b) continue;
+
+                var color = VizPalette[(c + i) % VizPalette.Length];
+                using var pen = new Pen(color, thickness);
+                g.DrawLine(pen, (float)a.X, (float)a.Y, (float)b.X, (float)b.Y);
+            }
+        }
+
+        return bmp;
+    }
+
+    /// <summary>
+    /// Dibuja los polígonos (caras mínimas) extraídos del grafo, rellenando
+    /// cada uno con un color distinto de la paleta para diferenciarlos.
+    /// </summary>
+    public static Bitmap RenderFacesBitmap(List<List<Point>> faces, int width, int height)
+    {
+        var bmp = new Bitmap(width, height);
+        using var g = Graphics.FromImage(bmp);
+        g.Clear(Color.White);
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+        using var outline = new Pen(Color.Black, 1);
+
+        for (int f = 0; f < faces.Count; f++)
+        {
+            var face = faces[f];
+            if (face.Count < 3) continue;
+
+            var pts = face.Select(p => new PointF((float)p.X, (float)p.Y)).ToArray();
+            using var brush = new SolidBrush(Color.FromArgb(110, VizPalette[f % VizPalette.Length]));
+            g.FillPolygon(brush, pts);
+            g.DrawPolygon(outline, pts);
+        }
+
+        return bmp;
+    }
 }

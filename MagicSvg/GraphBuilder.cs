@@ -12,20 +12,10 @@ namespace MagicSvg
         /// </summary>
         public Dictionary<Point, HashSet<Point>> Build(IReadOnlyList<Segment> segments)
         {
-            // Para cada segmento, calcular todos los puntos de corte con otros segmentos
-            // y dividirlo en sub-segmentos mínimos.
-
             var graph = new Dictionary<Point, HashSet<Point>>();
 
-            foreach (var seg in segments)
+            foreach (var sorted in BuildChains(segments))
             {
-                var cuts = FindCutPoints(seg, segments);
-
-                // Ordenar los puntos de corte a lo largo del segmento
-                var sorted = seg.IsHorizontal
-                    ? cuts.OrderBy(p => p.X).ToList()
-                    : cuts.OrderBy(p => p.Y).ToList();
-
                 // Añadir cada sub-segmento al grafo
                 for (int i = 0; i < sorted.Count - 1; i++)
                 {
@@ -41,6 +31,29 @@ namespace MagicSvg
             }
 
             return graph;
+        }
+
+        /// <summary>
+        /// Para cada segmento, calcula todos los puntos de corte con los demás y los
+        /// devuelve ordenados a lo largo del segmento, formando la cadena de
+        /// sub-segmentos mínimos en que queda dividido.
+        /// </summary>
+        public List<List<Point>> BuildChains(IReadOnlyList<Segment> segments)
+        {
+            var chains = new List<List<Point>>();
+
+            foreach (var seg in segments)
+            {
+                var cuts = FindCutPoints(seg, segments);
+
+                var sorted = seg.IsHorizontal
+                    ? cuts.OrderBy(p => p.X).ToList()
+                    : cuts.OrderBy(p => p.Y).ToList();
+
+                chains.Add(sorted);
+            }
+
+            return chains;
         }
 
         /// <summary>

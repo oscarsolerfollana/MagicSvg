@@ -22,6 +22,8 @@ namespace MagicSvg
         private System.Windows.Forms.Panel panelClassified;
         private System.Windows.Forms.Panel panelMerged;
         private System.Windows.Forms.Panel panelResult;
+        private System.Windows.Forms.Panel panelMinLines;
+        private System.Windows.Forms.Panel panelPolygons;
 
         private System.Windows.Forms.Label lblOriginal;
         private System.Windows.Forms.Label lblBinary;
@@ -30,6 +32,8 @@ namespace MagicSvg
         private System.Windows.Forms.Label lblClassified;
         private System.Windows.Forms.Label lblMerged;
         private System.Windows.Forms.Label lblResult;
+        private System.Windows.Forms.Label lblMinLines;
+        private System.Windows.Forms.Label lblPolygons;
 
         private System.Windows.Forms.PictureBox picOriginal;
         private System.Windows.Forms.PictureBox picBinary;
@@ -38,6 +42,8 @@ namespace MagicSvg
         private System.Windows.Forms.PictureBox picClassified;
         private System.Windows.Forms.PictureBox picMerged;
         private System.Windows.Forms.PictureBox picResult;
+        private System.Windows.Forms.PictureBox picMinLines;
+        private System.Windows.Forms.PictureBox picPolygons;
 
         // Parámetros
         private System.Windows.Forms.NumericUpDown numBinaryThreshold;
@@ -92,6 +98,8 @@ namespace MagicSvg
             panelClassified = new System.Windows.Forms.Panel();
             panelMerged     = new System.Windows.Forms.Panel();
             panelResult     = new System.Windows.Forms.Panel();
+            panelMinLines   = new System.Windows.Forms.Panel();
+            panelPolygons   = new System.Windows.Forms.Panel();
 
             lblOriginal   = new System.Windows.Forms.Label();
             lblBinary     = new System.Windows.Forms.Label();
@@ -100,6 +108,8 @@ namespace MagicSvg
             lblClassified = new System.Windows.Forms.Label();
             lblMerged     = new System.Windows.Forms.Label();
             lblResult     = new System.Windows.Forms.Label();
+            lblMinLines   = new System.Windows.Forms.Label();
+            lblPolygons   = new System.Windows.Forms.Label();
 
             picOriginal   = new System.Windows.Forms.PictureBox();
             picBinary     = new System.Windows.Forms.PictureBox();
@@ -108,6 +118,8 @@ namespace MagicSvg
             picClassified = new System.Windows.Forms.PictureBox();
             picMerged     = new System.Windows.Forms.PictureBox();
             picResult     = new System.Windows.Forms.PictureBox();
+            picMinLines   = new System.Windows.Forms.PictureBox();
+            picPolygons   = new System.Windows.Forms.PictureBox();
 
             numBinaryThreshold        = CreateNum( 0,  255, 200);
             numDilationKernelSize     = CreateNum( 1,   21,   3);
@@ -196,7 +208,7 @@ namespace MagicSvg
             // ── TableLayoutPanel 4×2 ───────────────────────────────────────
             tableImages.Dock        = System.Windows.Forms.DockStyle.Fill;
             tableImages.ColumnCount = 4;
-            tableImages.RowCount    = 2;
+            tableImages.RowCount    = 3;
             tableImages.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(
                 System.Windows.Forms.SizeType.Percent, 25F));
             tableImages.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(
@@ -206,9 +218,11 @@ namespace MagicSvg
             tableImages.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(
                 System.Windows.Forms.SizeType.Percent, 25F));
             tableImages.RowStyles.Add(new System.Windows.Forms.RowStyle(
-                System.Windows.Forms.SizeType.Percent, 50F));
+                System.Windows.Forms.SizeType.Percent, 33.34F));
             tableImages.RowStyles.Add(new System.Windows.Forms.RowStyle(
-                System.Windows.Forms.SizeType.Percent, 50F));
+                System.Windows.Forms.SizeType.Percent, 33.33F));
+            tableImages.RowStyles.Add(new System.Windows.Forms.RowStyle(
+                System.Windows.Forms.SizeType.Percent, 33.33F));
             tableImages.Padding = new System.Windows.Forms.Padding(4);
 
             // ── Fuente para etiquetas ──────────────────────────────────────
@@ -230,16 +244,23 @@ namespace MagicSvg
                 "⑤ Unificación de paralelas",                   imgFont);
             SetupImagePanel(panelResult,     picResult,     lblResult,
                 "⑥ Extensión/recorte",               imgFont);
+            SetupImagePanel(panelMinLines,   picMinLines,   lblMinLines,
+                "⑦ Líneas mínimas",                  imgFont);
+            SetupImagePanel(panelPolygons,   picPolygons,   lblPolygons,
+                "⑧ Polígonos",                       imgFont);
 
             // Fila 0: Original | Binario | Artefactos | Hough crudo
             tableImages.Controls.Add(panelOriginal,   0, 0);
             tableImages.Controls.Add(panelBinary,     1, 0);
             tableImages.Controls.Add(panelArtifacts,  2, 0);
             tableImages.Controls.Add(panelHoughRaw,   3, 0);
-            // Fila 1: Clasificados | Fusionados | Resultado
+            // Fila 1: Clasificados | Fusionados | Resultado | Líneas mínimas
             tableImages.Controls.Add(panelClassified, 0, 1);
             tableImages.Controls.Add(panelMerged,     1, 1);
             tableImages.Controls.Add(panelResult,     2, 1);
+            tableImages.Controls.Add(panelMinLines,   3, 1);
+            // Fila 2: Polígonos
+            tableImages.Controls.Add(panelPolygons,   0, 2);
 
             // ── Botón reset ────────────────────────────────────────────────
             btnReset.Text   = "Restablecer valores";
