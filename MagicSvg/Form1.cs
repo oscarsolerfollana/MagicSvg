@@ -9,6 +9,7 @@ namespace MagicSvg
         private Bitmap? _classified;
         private Bitmap? _merged;
         private Bitmap? _result;
+        private List<LineProcessor.Segment>? _segments;
         private bool    _suspendAutoProcess;
 
         public Form1()
@@ -38,8 +39,9 @@ namespace MagicSvg
             picMerged.Image      = null;
             picResult.Image      = null;
 
-            btnProcess.Enabled = true;
-            btnSave.Enabled    = false;
+            btnProcess.Enabled          = true;
+            btnSave.Enabled             = false;
+            btnExportSvg.Enabled        = false;
             lblStatus.Text =
                 $"Imagen cargada: {Path.GetFileName(dlg.FileName)}  " +
                 $"({_original.Width} × {_original.Height} px)";
@@ -73,7 +75,12 @@ namespace MagicSvg
                     SegmentGapTolerance    = (int)numSegmentGapTolerance.Value,
                     MinOutputSegmentLength = (int)numMinOutputLength.Value,
                     OutputLineThickness    = (int)numLineThickness.Value,
-                    SnapTolerance          = (int)numSnapTolerance.Value
+                    ContactTolerance       = (int)numContactTolerance.Value,
+                    IntersectionTolerance  = (int)numIntersectionTolerance.Value,
+                    ExtendMaxDistance      = (int)numExtendMaxDistance.Value,
+                    ClipTolerance          = (int)numClipTolerance.Value,
+                    CornerTolerance        = (int)numCornerTolerance.Value,
+                    MinCornerSegmentLength = (int)numMinCornerSegmentLength.Value
                 };
 
                 DisposePhases();
@@ -85,6 +92,7 @@ namespace MagicSvg
                 _classified = phases.Classified;
                 _merged     = phases.Merged;
                 _result     = phases.Final;
+                _segments   = phases.Segments;
 
                 picBinary.Image      = _binary;
                 picArtifacts.Image   = _artifacts;
@@ -93,8 +101,9 @@ namespace MagicSvg
                 picMerged.Image      = _merged;
                 picResult.Image      = _result;
 
-                btnSave.Enabled = true;
-                lblStatus.Text  = "Proceso completado. Puedes guardar el resultado.";
+                btnSave.Enabled      = true;
+                btnExportSvg.Enabled = true;
+                lblStatus.Text       = "Proceso completado. Puedes guardar el resultado.";
             }
             catch (Exception ex)
             {
@@ -126,9 +135,61 @@ namespace MagicSvg
             numSegmentGapTolerance.Value    = d.SegmentGapTolerance;
             numMinOutputLength.Value        = d.MinOutputSegmentLength;
             numLineThickness.Value          = d.OutputLineThickness;
-            numSnapTolerance.Value          = d.SnapTolerance;
+            numContactTolerance.Value       = d.ContactTolerance;
+            numIntersectionTolerance.Value  = d.IntersectionTolerance;
+            numExtendMaxDistance.Value      = d.ExtendMaxDistance;
+            numClipTolerance.Value          = d.ClipTolerance;
+            numCornerTolerance.Value        = d.CornerTolerance;
+            numMinCornerSegmentLength.Value = d.MinCornerSegmentLength;
             _suspendAutoProcess = false;
             TryAutoProcess();
+        }
+
+        // ── Exportar SVG (polígonos mínimos) ────────────────────────────────
+        private void BtnExportSvg_Click(object? sender, EventArgs e)
+        {
+            if (_result is null || _segments is null) return;
+
+            using var dlg = new SaveFileDialog
+            {
+                Title      = "Exportar SVG (polígonos)",
+                Filter     = "SVG (*.svg)|*.svg|Todos los archivos|*.*",
+                DefaultExt = "svg",
+                FileName   = "poligonos"
+            };
+
+            if (dlg.ShowDialog() != DialogResult.OK) return;
+
+            lblStatus.Text = "Generando SVG…";
+            Application.DoEvents();
+
+            try
+            {
+                var faces = SvgExporter.ExtractFaces(_segments);
+                string svg = SvgExporter.RenderPolygonsSvg(faces, _result.Width, _result.Height);
+                File.WriteAllText(dlg.FileName, svg, System.Text.Encoding.UTF8);
+                lblStatus.Text = $"SVG guardado: {Path.GetFileName(dlg.FileName)}";
+
+                if (faces.Count > 0)
+                {
+                    var resp = MessageBox.Show(
+                        "¿Quieres asignar nombres de habitación a los polígonos?",
+                        "Crear habitaciones", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                    if (resp == DialogResult.Yes)
+                    {
+                        using var roomForm = new RoomEditorForm(faces, _result.Width, _result.Height, _result);
+                        roomForm.ShowDialog(this);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Error al exportar SVG:\n{ex.Message}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                lblStatus.Text = "Error al exportar SVG.";
+            }
         }
 
         // ── Guardar resultado ───────────────────────────────────────────────
@@ -160,7 +221,7 @@ namespace MagicSvg
         // ── Auto-proceso ────────────────────────────────────────────────────────
         private void TryAutoProcess()
         {
-            if (_suspendAutoProcess || !chkAutoProcess.Checked || _original is null) return;
+            if (_suspendAutoProcess || _original is null) return;
             BtnProcess_Click(null, EventArgs.Empty);
         }
 
@@ -181,6 +242,7 @@ namespace MagicSvg
             _houghRaw?.Dispose();   _houghRaw   = null;
             _classified?.Dispose(); _classified = null;
             _merged?.Dispose();     _merged     = null;
+            _segments = null;
         }
     }
 }

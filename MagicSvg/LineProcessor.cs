@@ -23,9 +23,16 @@ public static class LineProcessor
         public int    SegmentGapTolerance    { get; init; } = 35;
         public int    MinOutputSegmentLength { get; init; } = 30;
         public int    OutputLineThickness    { get; init; } = 2;
-        public int    SnapTolerance          { get; init; } = 8;
         /// <summary>Área mínima en píxeles de un componente conectado. Los más pequeños se eliminan como artefactos.</summary>
         public int    MinComponentArea       { get; init; } = 500;
+        public int    ContactTolerance       { get; init; } = 8;
+        public int    IntersectionTolerance  { get; init; } = 24;
+        public int    CornerTolerance        { get; init; } = 80;
+        public int    MinCornerSegmentLength { get; init; } = 8;
+        /// <summary>Radio máximo para detectar una intersección de recorte (B) cerca del extremo.</summary>
+        public int    ClipTolerance          { get; init; } = 8;
+        /// <summary>Distancia máxima desde el extremo para buscar una intersección de extensión (C).</summary>
+        public int    ExtendMaxDistance      { get; init; } = 200;
     }
 
     public record ProcessResult(
@@ -35,7 +42,9 @@ public static class LineProcessor
         Bitmap Classified,
         Bitmap Merged,
         Bitmap Final,
-        List<Segment> Segments
+        List<Segment> Segments,
+        int Width,
+        int Height
     );
 
     static readonly int[] CandidateAngles = [0, 30, 45, 60, 90, 120, 135, 150];
@@ -249,14 +258,17 @@ public static class LineProcessor
         Bitmap bmpMerged = BitmapConverter.ToBitmap(mergedMat);
 
         // Phase 5: extend to intersections (draw AFTER this, never before)
-        var extended = ExtendToIntersections(merged, settings.SnapTolerance);
+        var extended = ExtendToIntersections(merged,
+            settings.ContactTolerance, settings.IntersectionTolerance,
+            settings.CornerTolerance, settings.MinCornerSegmentLength,
+            settings.ClipTolerance, settings.ExtendMaxDistance);
 
         using var output = new Mat(src.Rows, src.Cols, MatType.CV_8UC3, white);
         foreach (var s in extended)
             Cv2.Line(output, new OcvPoint(s.X1, s.Y1), new OcvPoint(s.X2, s.Y2), black, thickness);
         Bitmap bmpFinal = BitmapConverter.ToBitmap(output);
 
-        return new ProcessResult(bmpBinary, bmpArtifacts, bmpHoughRaw, bmpClassified, bmpMerged, bmpFinal, extended);
+        return new ProcessResult(bmpBinary, bmpArtifacts, bmpHoughRaw, bmpClassified, bmpMerged, bmpFinal, extended, src.Cols, src.Rows);
     }
 
     public static Bitmap ProcessImage(Bitmap input, Settings? settings = null)
@@ -358,10 +370,9 @@ public static class LineProcessor
 
     // ── Extend / clip segments to intersections ───────────────────────────────
 
-    static List<Segment> ExtendToIntersections(List<Segment> segs, int snapTol)
+    static List<Segment> ExtendToIntersections(List<Segment> segs, int contactTol, int intersectionTol, int cornerTol, int minCornerLen, int clipTol, int extendMax)
     {
 
-        int cornerTol = snapTol * 10;
         var result = segs.ToList();
 
         for (int i = 0; i < result.Count; i++)
@@ -379,10 +390,10 @@ public static class LineProcessor
                 if (k == selfIdx) continue;
                 var other = result[k];
                 double perp = PerpDist(other, ex, ey);
-                if (perp > snapTol) continue;
+                if (perp > contactTol) continue;
                 double t = ProjectOnto(other, ex, ey);
                 double len = SegLen(other);
-                if (t >= -snapTol && t <= len + snapTol) return false;
+                if (t >= -contactTol && t <= len + contactTol) return false;
             }
             return true;
         }
@@ -444,7 +455,7 @@ public static class LineProcessor
                     : result[bestJ] with { X1 = rpx, Y1 = rpy };
 
                 // Solo aplicar si ambos segmentos siguen teniendo longitud razonable
-                if (SegLen(newI) >= snapTol && SegLen(newJ) >= snapTol)
+                if (SegLen(newI) >= minCornerLen && SegLen(newJ) >= minCornerLen)
                 {
                     result[i] = newI;
                     result[bestJ] = newJ;
@@ -485,7 +496,7 @@ public static class LineProcessor
                 // Solo considerar si el punto está cerca del segmento j (con margen generoso)
                 double tj = ProjectOnto(snapshot[j], pt.Value.px, pt.Value.py);
                 double lenJ = SegLen(snapshot[j]);
-                if (tj < -snapTol * 3 || tj > lenJ + snapTol * 3) continue;
+                if (tj < -intersectionTol || tj > lenJ + intersectionTol) continue;
 
                 double t = (pt.Value.px - s.X1) * ux + (pt.Value.py - s.Y1) * uy;
                 intersections.Add(t);
@@ -502,31 +513,19 @@ public static class LineProcessor
 
                 foreach (double t in intersections)
                 {
-                    if (t >= 0 && t <= tLen)        // dentro del segmento
+                    if (t >= 0 && t <= tLen && Math.Abs(t - a) <= clipTol)
                     {
                         if (b is null || t < b.Value) b = t; // el más cercano a P1 = el menor
                     }
-                    else if (t < 0)                  // más allá de P1
+                    else if (t < 0 && Math.Abs(t - a) <= extendMax)
                     {
-                        if (c is null || t > c.Value) c = t; // el más cercano = el mayor
+                        if (c is null || t > c.Value) c = t; // el más cercano a 0 por la izquierda = el mayor
                     }
                 }
 
                 System.Diagnostics.Debug.WriteLine(
         $"Resolve Seg[{i}] angle={s.AngleDeg} P1 a={a:F1} b={b:F1} c={c:F1} " +
         $"ts=[{string.Join(",", intersections.Select(t => t.ToString("F1")))}]");
-
-                // ...cálculo de b y c...
-
-                // Si b es null, el extremo no toca nada: solo extender si es realmente libre
-                if (b is null && c is not null)
-                {
-                    bool free = !snapshot.Where((_, k) => k != i)
-                        .Any(other => PerpDist(other, s.X1, s.Y1) <= snapTol &&
-                                      ProjectOnto(other, s.X1, s.Y1) >= -snapTol &&
-                                      ProjectOnto(other, s.X1, s.Y1) <= SegLen(other) + snapTol);
-                    if (!free) c = null;
-                }
 
                 double tNew = ResolveEndpoint(a, b, c);
                 nx1 = (int)Math.Round(s.X1 + tNew * ux);
@@ -541,29 +540,19 @@ public static class LineProcessor
 
                 foreach (double t in intersections)
                 {
-                    if (t >= 0 && t <= tLen)         // dentro del segmento
+                    if (t >= 0 && t <= tLen && Math.Abs(t - a) <= clipTol)
                     {
                         if (b is null || t > b.Value) b = t; // el más cercano a P2 = el mayor
                     }
-                    else if (t > tLen)               // más allá de P2
+                    else if (t > tLen && Math.Abs(t - a) <= extendMax)
                     {
-                        if (c is null || t < c.Value) c = t; // el más cercano = el menor
+                        if (c is null || t < c.Value) c = t; // el más cercano a tLen por la derecha = el menor
                     }
                 }
 
                 System.Diagnostics.Debug.WriteLine(
     $"Resolve Seg[{i}] angle={s.AngleDeg} P2 a={a:F1} b={b:F1} c={c:F1} " +
     $"ts=[{string.Join(",", intersections.Select(t => t.ToString("F1")))}]");
-
-                // Si b es null, el extremo no toca nada: solo extender si es realmente libre
-                if (b is null && c is not null)
-                {
-                    bool free = !snapshot.Where((_, k) => k != i)
-                        .Any(other => PerpDist(other, s.X2, s.Y2) <= snapTol &&
-                                      ProjectOnto(other, s.X2, s.Y2) >= -snapTol &&
-                                      ProjectOnto(other, s.X2, s.Y2) <= SegLen(other) + snapTol);
-                    if (!free) c = null;
-                }
 
                 double tNew = ResolveEndpoint(a, b, c);
                 nx2 = (int)Math.Round(s.X1 + tNew * ux);

@@ -9,6 +9,7 @@ namespace MagicSvg
         private System.Windows.Forms.ToolStripButton btnOpen;
         private System.Windows.Forms.ToolStripButton btnProcess;
         private System.Windows.Forms.ToolStripButton btnSave;
+        private System.Windows.Forms.ToolStripButton btnExportSvg;
 
         // Imágenes (cuadrícula 3×2)
         private System.Windows.Forms.SplitContainer splitMain;
@@ -51,9 +52,13 @@ namespace MagicSvg
         private System.Windows.Forms.NumericUpDown numSegmentGapTolerance;
         private System.Windows.Forms.NumericUpDown numMinOutputLength;
         private System.Windows.Forms.NumericUpDown numLineThickness;
-        private System.Windows.Forms.NumericUpDown numSnapTolerance;
+        private System.Windows.Forms.NumericUpDown numContactTolerance;
+        private System.Windows.Forms.NumericUpDown numIntersectionTolerance;
+        private System.Windows.Forms.NumericUpDown numExtendMaxDistance;
+        private System.Windows.Forms.NumericUpDown numClipTolerance;
+        private System.Windows.Forms.NumericUpDown numCornerTolerance;
+        private System.Windows.Forms.NumericUpDown numMinCornerSegmentLength;
         private System.Windows.Forms.Button btnReset;
-        private System.Windows.Forms.CheckBox chkAutoProcess;
 
         // Status
         private System.Windows.Forms.StatusStrip statusStrip;
@@ -72,10 +77,11 @@ namespace MagicSvg
         {
             components = new System.ComponentModel.Container();
 
-            toolStrip   = new System.Windows.Forms.ToolStrip();
-            btnOpen     = new System.Windows.Forms.ToolStripButton();
-            btnProcess  = new System.Windows.Forms.ToolStripButton();
-            btnSave     = new System.Windows.Forms.ToolStripButton();
+            toolStrip    = new System.Windows.Forms.ToolStrip();
+            btnOpen      = new System.Windows.Forms.ToolStripButton();
+            btnProcess   = new System.Windows.Forms.ToolStripButton();
+            btnSave      = new System.Windows.Forms.ToolStripButton();
+            btnExportSvg = new System.Windows.Forms.ToolStripButton();
             splitMain   = new System.Windows.Forms.SplitContainer();
             tableImages = new System.Windows.Forms.TableLayoutPanel();
 
@@ -115,9 +121,13 @@ namespace MagicSvg
             numSegmentGapTolerance    = CreateNum( 0,  300,  35);
             numMinOutputLength        = CreateNum( 0,  500,  30);
             numLineThickness          = CreateNum( 1,   10,   2);
-            numSnapTolerance          = CreateNum( 0,   50,   8);
+            numContactTolerance       = CreateNum( 0,   50,   8);
+            numIntersectionTolerance  = CreateNum( 0,  100,  24);
+            numExtendMaxDistance      = CreateNum( 0, 1000, 200);
+            numClipTolerance          = CreateNum( 0,   500,   8);
+            numCornerTolerance        = CreateNum( 0,  300,  80);
+            numMinCornerSegmentLength = CreateNum( 0,   50,   8);
             btnReset       = new System.Windows.Forms.Button();
-            chkAutoProcess = new System.Windows.Forms.CheckBox();
             statusStrip    = new System.Windows.Forms.StatusStrip();
             lblStatus      = new System.Windows.Forms.ToolStripStatusLabel();
 
@@ -133,7 +143,12 @@ namespace MagicSvg
             numSegmentGapTolerance.ValueChanged    += Num_ValueChanged;
             numMinOutputLength.ValueChanged        += Num_ValueChanged;
             numLineThickness.ValueChanged          += Num_ValueChanged;
-            numSnapTolerance.ValueChanged          += Num_ValueChanged;
+            numContactTolerance.ValueChanged       += Num_ValueChanged;
+            numIntersectionTolerance.ValueChanged  += Num_ValueChanged;
+            numExtendMaxDistance.ValueChanged      += Num_ValueChanged;
+            numClipTolerance.ValueChanged          += Num_ValueChanged;
+            numCornerTolerance.ValueChanged        += Num_ValueChanged;
+            numMinCornerSegmentLength.ValueChanged += Num_ValueChanged;
 
             splitMain.SuspendLayout();
             splitMain.Panel1.SuspendLayout();
@@ -148,7 +163,9 @@ namespace MagicSvg
             {
                 btnOpen, btnProcess,
                 new System.Windows.Forms.ToolStripSeparator(),
-                btnSave
+                btnSave,
+                new System.Windows.Forms.ToolStripSeparator(),
+                btnExportSvg
             });
 
             btnOpen.Text         = "📂  Abrir imagen";
@@ -165,7 +182,12 @@ namespace MagicSvg
             btnSave.Enabled      = false;
             btnSave.Click       += BtnSave_Click;
 
-            // ── SplitContainer ─────────────────────────────────────────────
+            btnExportSvg.Text         = "⬡  Exportar SVG (polígonos)";
+            btnExportSvg.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            btnExportSvg.Enabled      = false;
+            btnExportSvg.Click       += BtnExportSvg_Click;
+
+            // ── SplitContainer
             splitMain.Dock          = System.Windows.Forms.DockStyle.Fill;
             splitMain.Orientation   = System.Windows.Forms.Orientation.Vertical;
             splitMain.FixedPanel    = System.Windows.Forms.FixedPanel.Panel2;
@@ -323,32 +345,33 @@ namespace MagicSvg
             SAddParam(tbl, nFont, "Umbral (0-255):",          numBinaryThreshold);
             SAddParam(tbl, nFont, "Kernel dilatación (px):",  numDilationKernelSize);
             SAddParam(tbl, nFont, "Iteraciones dilatación:",  numDilationIterations);
+
+            SAddSection(tbl, sFont, "Eliminación de artefactos");
             SAddParam(tbl, nFont, "Área mín. componente (px²):", numMinComponentArea);
 
             SAddSection(tbl, sFont, "Detección (Hough)");
             SAddParam(tbl, nFont, "Umbral votos:",           numHoughThreshold);
             SAddParam(tbl, nFont, "Long. mín. det. (px):",   numMinLineLength);
             SAddParam(tbl, nFont, "Hueco máx. Hough (px):",  numMaxLineGap);
+
+            SAddSection(tbl, sFont, "Clasificación");
             SAddParam(tbl, nFont, "Tolerancia ángulo (°):",  numAngleTolerance);
 
             SAddSection(tbl, sFont, "Unificación de paralelas");
             SAddParam(tbl, nFont, "Tolerancia posición (px):", numMergePositionTolerance);
             SAddParam(tbl, nFont, "Hueco segmentos (px):",     numSegmentGapTolerance);
+            SAddParam(tbl, nFont, "Long. mín. salida (px):",   numMinOutputLength);
+
+            SAddSection(tbl, sFont, "Extensión/recorte");
+            SAddParam(tbl, nFont, "Tolerancia contacto (px):",       numContactTolerance);
+            SAddParam(tbl, nFont, "Tolerancia intersección (px):",   numIntersectionTolerance);
+            SAddParam(tbl, nFont, "Distancia máx. extensión (px):",  numExtendMaxDistance);
+            SAddParam(tbl, nFont, "Tolerancia recorte (px):",        numClipTolerance);
+            SAddParam(tbl, nFont, "Tolerancia esquina (px):",        numCornerTolerance);
+            SAddParam(tbl, nFont, "Long. mín. esquina (px):",        numMinCornerSegmentLength);
 
             SAddSection(tbl, sFont, "Resultado");
-            SAddParam(tbl, nFont, "Long. mín. salida (px):", numMinOutputLength);
             SAddParam(tbl, nFont, "Grosor de líneas (px):",  numLineThickness);
-
-            SAddSection(tbl, sFont, "Extensión");
-            SAddParam(tbl, nFont, "Tolerancia snap (px):",   numSnapTolerance);
-
-            r = SAddRow(tbl, 28);
-            chkAutoProcess.Text   = "⚡  Procesar al cambiar valores";
-            chkAutoProcess.Dock   = System.Windows.Forms.DockStyle.Fill;
-            chkAutoProcess.Font   = nFont;
-            chkAutoProcess.Margin = new System.Windows.Forms.Padding(0, 6, 0, 2);
-            tbl.Controls.Add(chkAutoProcess, 0, r);
-            tbl.SetColumnSpan(chkAutoProcess, 2);
 
             r = SAddRow(tbl, 36);
             btnReset.Dock   = System.Windows.Forms.DockStyle.Fill;
