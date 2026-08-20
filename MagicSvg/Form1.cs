@@ -46,9 +46,21 @@ namespace MagicSvg
             btnProcess.Enabled          = true;
             btnSave.Enabled             = false;
             btnExportSvg.Enabled        = false;
-            lblStatus.Text =
+
+            string statusMsg =
                 $"Imagen cargada: {Path.GetFileName(dlg.FileName)}  " +
                 $"({_original.Width} × {_original.Height} px)";
+
+            var suggestion = ParamLearner.Suggest(_original);
+            if (suggestion is not null)
+            {
+                _suspendAutoProcess = true;
+                ApplySettings(suggestion);
+                _suspendAutoProcess = false;
+                statusMsg += $"  · Parámetros sugeridos a partir de {ParamLearner.ExampleCount} ejemplo(s) aprendido(s).";
+            }
+
+            lblStatus.Text = statusMsg;
 
             ProcessImageOnLoad();
         }
@@ -65,27 +77,7 @@ namespace MagicSvg
 
             try
             {
-                var settings = new LineProcessor.Settings
-                {
-                    BinaryThreshold        = (int)numBinaryThreshold.Value,
-                    DilationKernelSize     = (int)numDilationKernelSize.Value,
-                    DilationIterations     = (int)numDilationIterations.Value,
-                    MinComponentArea       = (int)numMinComponentArea.Value,
-                    HoughThreshold         = (int)numHoughThreshold.Value,
-                    MinLineLength          = (int)numMinLineLength.Value,
-                    MaxLineGap             = (int)numMaxLineGap.Value,
-                    AngleSnapTolerance     = (double)numAngleTolerance.Value,
-                    MergePositionTolerance = (int)numMergePositionTolerance.Value,
-                    SegmentGapTolerance    = (int)numSegmentGapTolerance.Value,
-                    MinOutputSegmentLength = (int)numMinOutputLength.Value,
-                    OutputLineThickness    = (int)numLineThickness.Value,
-                    ContactTolerance       = (int)numContactTolerance.Value,
-                    IntersectionTolerance  = (int)numIntersectionTolerance.Value,
-                    ExtendMaxDistance      = (int)numExtendMaxDistance.Value,
-                    ClipTolerance          = (int)numClipTolerance.Value,
-                    CornerTolerance        = (int)numCornerTolerance.Value,
-                    MinCornerSegmentLength = (int)numMinCornerSegmentLength.Value
-                };
+                var settings = BuildSettingsFromUi();
 
                 DisposePhases();
 
@@ -98,12 +90,15 @@ namespace MagicSvg
                 _result     = phases.Final;
                 _segments   = phases.Segments;
 
-                var minLineChains = SvgExporter.ComputeMinimalLineChains(_segments);
-                _minimalLines = SvgExporter.RenderMinimalLinesBitmap(
-                    minLineChains, phases.Width, phases.Height, settings.OutputLineThickness);
+                var fusedGraph = SvgExporter.ComputeFusedGraph(_segments);
 
-                var faces = SvgExporter.ExtractFaces(_segments);
-                _polygons = SvgExporter.RenderFacesBitmap(faces, phases.Width, phases.Height);
+                var minLineEdges = SvgExporter.ComputeMinimalLineEdges(fusedGraph);
+                var collinearLines = SvgExporter.GroupCollinearLines(minLineEdges);
+                _minimalLines = SvgExporter.RenderMinimalLinesBitmap(
+                    collinearLines, phases.Width, phases.Height, settings.OutputLineThickness);
+
+                var faces = SvgExporter.ExtractFacesFromGraph(fusedGraph);
+                _polygons = SvgExporter.RenderFacesBitmap(faces, phases.Width, phases.Height, settings.OutputLineThickness);
 
                 picBinary.Image      = _binary;
                 picArtifacts.Image   = _artifacts;
@@ -135,27 +130,65 @@ namespace MagicSvg
         private void BtnReset_Click(object? sender, EventArgs e)
         {
             _suspendAutoProcess = true;
-            var d = new LineProcessor.Settings();
-            numBinaryThreshold.Value        = d.BinaryThreshold;
-            numDilationKernelSize.Value     = d.DilationKernelSize;
-            numDilationIterations.Value     = d.DilationIterations;
-            numMinComponentArea.Value       = d.MinComponentArea;
-            numHoughThreshold.Value         = d.HoughThreshold;
-            numMinLineLength.Value          = d.MinLineLength;
-            numMaxLineGap.Value             = d.MaxLineGap;
-            numAngleTolerance.Value         = (decimal)d.AngleSnapTolerance;
-            numMergePositionTolerance.Value = d.MergePositionTolerance;
-            numSegmentGapTolerance.Value    = d.SegmentGapTolerance;
-            numMinOutputLength.Value        = d.MinOutputSegmentLength;
-            numLineThickness.Value          = d.OutputLineThickness;
-            numContactTolerance.Value       = d.ContactTolerance;
-            numIntersectionTolerance.Value  = d.IntersectionTolerance;
-            numExtendMaxDistance.Value      = d.ExtendMaxDistance;
-            numClipTolerance.Value          = d.ClipTolerance;
-            numCornerTolerance.Value        = d.CornerTolerance;
-            numMinCornerSegmentLength.Value = d.MinCornerSegmentLength;
+            ApplySettings(new LineProcessor.Settings());
             _suspendAutoProcess = false;
             TryAutoProcess();
+        }
+
+        // ── Validar y aprender parámetros ───────────────────────────────────
+        private void BtnValidate_Click(object? sender, EventArgs e)
+        {
+            if (_original is null) return;
+
+            ParamLearner.AddExample(_original, BuildSettingsFromUi());
+
+            lblStatus.Text =
+                $"Parámetros guardados como ejemplo válido. " +
+                $"Ejemplos aprendidos: {ParamLearner.ExampleCount}.";
+        }
+
+        private LineProcessor.Settings BuildSettingsFromUi() => new()
+        {
+            BinaryThreshold        = (int)numBinaryThreshold.Value,
+            DilationKernelSize     = (int)numDilationKernelSize.Value,
+            DilationIterations     = (int)numDilationIterations.Value,
+            MinComponentArea       = (int)numMinComponentArea.Value,
+            HoughThreshold         = (int)numHoughThreshold.Value,
+            MinLineLength          = (int)numMinLineLength.Value,
+            MaxLineGap             = (int)numMaxLineGap.Value,
+            AngleSnapTolerance     = (double)numAngleTolerance.Value,
+            MergePositionTolerance = (int)numMergePositionTolerance.Value,
+            SegmentGapTolerance    = (int)numSegmentGapTolerance.Value,
+            MinOutputSegmentLength = (int)numMinOutputLength.Value,
+            OutputLineThickness    = (int)numLineThickness.Value,
+            ContactTolerance       = (int)numContactTolerance.Value,
+            IntersectionTolerance  = (int)numIntersectionTolerance.Value,
+            ExtendMaxDistance      = (int)numExtendMaxDistance.Value,
+            ClipTolerance          = (int)numClipTolerance.Value,
+            CornerTolerance        = (int)numCornerTolerance.Value,
+            MinCornerSegmentLength = (int)numMinCornerSegmentLength.Value
+        };
+
+        private void ApplySettings(LineProcessor.Settings s)
+        {
+            numBinaryThreshold.Value        = s.BinaryThreshold;
+            numDilationKernelSize.Value     = s.DilationKernelSize;
+            numDilationIterations.Value     = s.DilationIterations;
+            numMinComponentArea.Value       = s.MinComponentArea;
+            numHoughThreshold.Value         = s.HoughThreshold;
+            numMinLineLength.Value          = s.MinLineLength;
+            numMaxLineGap.Value             = s.MaxLineGap;
+            numAngleTolerance.Value         = (decimal)s.AngleSnapTolerance;
+            numMergePositionTolerance.Value = s.MergePositionTolerance;
+            numSegmentGapTolerance.Value    = s.SegmentGapTolerance;
+            numMinOutputLength.Value        = s.MinOutputSegmentLength;
+            numLineThickness.Value          = s.OutputLineThickness;
+            numContactTolerance.Value       = s.ContactTolerance;
+            numIntersectionTolerance.Value  = s.IntersectionTolerance;
+            numExtendMaxDistance.Value      = s.ExtendMaxDistance;
+            numClipTolerance.Value          = s.ClipTolerance;
+            numCornerTolerance.Value        = s.CornerTolerance;
+            numMinCornerSegmentLength.Value = s.MinCornerSegmentLength;
         }
 
         // ── Exportar SVG (polígonos mínimos) ────────────────────────────────

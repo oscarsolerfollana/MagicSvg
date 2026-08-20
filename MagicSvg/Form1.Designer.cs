@@ -65,6 +65,7 @@ namespace MagicSvg
         private System.Windows.Forms.NumericUpDown numCornerTolerance;
         private System.Windows.Forms.NumericUpDown numMinCornerSegmentLength;
         private System.Windows.Forms.Button btnReset;
+        private System.Windows.Forms.Button btnValidate;
 
         // Status
         private System.Windows.Forms.StatusStrip statusStrip;
@@ -140,6 +141,7 @@ namespace MagicSvg
             numCornerTolerance        = CreateNum( 0,  300,  80);
             numMinCornerSegmentLength = CreateNum( 0,   50,   8);
             btnReset       = new System.Windows.Forms.Button();
+            btnValidate    = new System.Windows.Forms.Button();
             statusStrip    = new System.Windows.Forms.StatusStrip();
             lblStatus      = new System.Windows.Forms.ToolStripStatusLabel();
 
@@ -266,6 +268,11 @@ namespace MagicSvg
             btnReset.Text   = "Restablecer valores";
             btnReset.Height = 28;
             btnReset.Click += BtnReset_Click;
+
+            // ── Botón validar y aprender ──────────────────────────────────────
+            btnValidate.Text    = "✅ Validar y aprender estos parámetros";
+            btnValidate.Height  = 28;
+            btnValidate.Click  += BtnValidate_Click;
 
             // ── Ensamblar SplitContainer ───────────────────────────────────
             splitMain.Panel1.Controls.Add(tableImages);
@@ -399,6 +406,12 @@ namespace MagicSvg
             btnReset.Margin = new System.Windows.Forms.Padding(0, 6, 0, 4);
             tbl.Controls.Add(btnReset, 0, r);
             tbl.SetColumnSpan(btnReset, 2);
+
+            r = SAddRow(tbl, 36);
+            btnValidate.Dock   = System.Windows.Forms.DockStyle.Fill;
+            btnValidate.Margin = new System.Windows.Forms.Padding(0, 4, 0, 4);
+            tbl.Controls.Add(btnValidate, 0, r);
+            tbl.SetColumnSpan(btnValidate, 2);
 
             return tbl;
         }

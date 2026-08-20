@@ -265,7 +265,7 @@ public static class LineProcessor
 
         using var output = new Mat(src.Rows, src.Cols, MatType.CV_8UC3, white);
         foreach (var s in extended)
-            Cv2.Line(output, new OcvPoint(s.X1, s.Y1), new OcvPoint(s.X2, s.Y2), black, thickness);
+            Cv2.Line(output, new OcvPoint(s.X1, s.Y1), new OcvPoint(s.X2, s.Y2), AngleColors[s.AngleDeg], thickness);
         Bitmap bmpFinal = BitmapConverter.ToBitmap(output);
 
         return new ProcessResult(bmpBinary, bmpArtifacts, bmpHoughRaw, bmpClassified, bmpMerged, bmpFinal, extended, src.Cols, src.Rows);

@@ -284,19 +284,36 @@ public static class SvgExporter
     // ── Polygon SVG export (GraphBuilder + FaceExtractor) ───────────────────────────
 
     /// <summary>
-    /// Convierte los segmentos en las caras mínimas (polígonos) del plano usando
-    /// <see cref="GraphBuilder"/> para construir el grafo planar y
-    /// <see cref="FaceExtractor"/> para extraer las caras.
+    /// Construye el grafo planar de los segmentos (<see cref="GraphBuilder.Build"/>)
+    /// y lo simplifica fusionando los vértices redundantes
+    /// (<see cref="GraphBuilder.Fuse"/>): los de grado 2 donde la línea sigue
+    /// recta y ningún otro segmento se cruza realmente en ese punto. El grafo
+    /// resultante es más pequeño y produce polígonos sin vértices colineales
+    /// redundantes, sin perder ninguna esquina real.
     /// </summary>
-    public static List<List<Point>> ExtractFaces(List<LineProcessor.Segment> segments)
+    public static Dictionary<Point, HashSet<Point>> ComputeFusedGraph(List<LineProcessor.Segment> segments)
     {
         var segs = segments
             .Select(s => new Segment(new Point(s.X1, s.Y1), new Point(s.X2, s.Y2)))
             .ToList();
 
-        var graph = new GraphBuilder().Build(segs);
-        return new FaceExtractor().Extract(graph);
+        var gb = new GraphBuilder();
+        return gb.Fuse(gb.Build(segs));
     }
+
+    /// <summary>
+    /// Extrae las caras mínimas (polígonos) de un grafo planar ya construido.
+    /// </summary>
+    public static List<List<Point>> ExtractFacesFromGraph(Dictionary<Point, HashSet<Point>> graph)
+        => new FaceExtractor().Extract(graph);
+
+    /// <summary>
+    /// Convierte los segmentos en las caras mínimas (polígonos) del plano usando
+    /// <see cref="GraphBuilder"/> para construir y simplificar el grafo planar y
+    /// <see cref="FaceExtractor"/> para extraer las caras.
+    /// </summary>
+    public static List<List<Point>> ExtractFaces(List<LineProcessor.Segment> segments)
+        => ExtractFacesFromGraph(ComputeFusedGraph(segments));
 
     /// <summary>
     /// Genera el SVG de polígonos a partir de las caras extraídas. Si se proporciona
@@ -372,25 +389,134 @@ public static class SvgExporter
     ];
 
     /// <summary>
-    /// Divide cada segmento en los sub-segmentos mínimos resultantes de cortarlo
-    /// por sus intersecciones con los demás, y devuelve para cada segmento
-    /// original la cadena ordenada de puntos que lo componen.
+    /// Devuelve las aristas (líneas mínimas) de un grafo planar ya construido,
+    /// una por cada par de vértices conectados, como cadenas de dos puntos.
     /// </summary>
-    public static List<List<Point>> ComputeMinimalLineChains(List<LineProcessor.Segment> segments)
+    public static List<List<Point>> ComputeMinimalLineEdges(Dictionary<Point, HashSet<Point>> graph)
     {
-        var segs = segments
-            .Select(s => new Segment(new Point(s.X1, s.Y1), new Point(s.X2, s.Y2)))
-            .ToList();
+        var edges = new List<List<Point>>();
+        var seen  = new HashSet<(Point, Point)>();
 
-        return new GraphBuilder().BuildChains(segs);
+        foreach (var (v, nbrs) in graph)
+            foreach (var w in nbrs)
+            {
+                var key = (v.X, v.Y).CompareTo((w.X, w.Y)) <= 0 ? (v, w) : (w, v);
+                if (!seen.Add(key)) continue;
+                edges.Add([v, w]);
+            }
+
+        return edges;
     }
 
     /// <summary>
-    /// Dibuja las líneas mínimas (sub-segmentos tras cortarlas por sus
-    /// intersecciones). Cada sub-segmento usa un color de una paleta; dos
-    /// sub-segmentos consecutivos de la misma línea original siempre llevan
-    /// colores distintos para que se aprecien los puntos de corte, aunque el
-    /// mismo color pueda repetirse en otras líneas.
+    /// Paso extra sobre las cadenas de líneas mínimas: varios puntos colineales
+    /// y conectados se consideran una misma línea hasta que se produce un
+    /// cambio de dirección (un giro). Dos sub-segmentos consecutivos en un
+    /// mismo vértice se fusionan en el mismo grupo cuando sus direcciones,
+    /// vistas desde ese vértice, son opuestas (~180°, es decir, el trazo sigue
+    /// recto a través del vértice). El resultado es, para cada línea extendida,
+    /// la lista ordenada de puntos que la componen (incluyendo los puntos
+    /// intermedios donde se cruzó con otras líneas sin cambiar de dirección).
+    /// </summary>
+    public static List<List<Point>> GroupCollinearLines(
+        List<List<Point>> chains, double angleTolDeg = 1.0)
+    {
+        // Recopilar todas las aristas (sub-segmentos) únicas de las cadenas.
+        var edges = new List<(Point A, Point B)>();
+        foreach (var chain in chains)
+            for (int i = 0; i < chain.Count - 1; i++)
+                if (chain[i] != chain[i + 1])
+                    edges.Add((chain[i], chain[i + 1]));
+
+        int n = edges.Count;
+        var parent = Enumerable.Range(0, n).ToArray();
+
+        int Find(int x)
+        {
+            while (parent[x] != x)
+            {
+                parent[x] = parent[parent[x]];
+                x = parent[x];
+            }
+            return x;
+        }
+        void Union(int a, int b)
+        {
+            a = Find(a); b = Find(b);
+            if (a != b) parent[a] = b;
+        }
+
+        // Aristas incidentes en cada vértice.
+        var incident = new Dictionary<Point, List<(int idx, Point other)>>();
+        for (int i = 0; i < n; i++)
+        {
+            var (a, b) = edges[i];
+            if (!incident.TryGetValue(a, out var la)) incident[a] = la = [];
+            if (!incident.TryGetValue(b, out var lb)) incident[b] = lb = [];
+            la.Add((i, b));
+            lb.Add((i, a));
+        }
+
+        // Dos aristas que comparten un vértice se fusionan si, vistas desde
+        // ese vértice, apuntan en direcciones opuestas (la línea sigue recta).
+        double cosTol = Math.Cos((180.0 - angleTolDeg) * Math.PI / 180.0);
+
+        foreach (var (v, list) in incident)
+        {
+            for (int i = 0; i < list.Count; i++)
+                for (int j = i + 1; j < list.Count; j++)
+                {
+                    var (idxA, a) = list[i];
+                    var (idxB, b) = list[j];
+
+                    double ax = a.X - v.X, ay = a.Y - v.Y;
+                    double bx = b.X - v.X, by = b.Y - v.Y;
+                    double la_ = Math.Sqrt(ax * ax + ay * ay);
+                    double lb_ = Math.Sqrt(bx * bx + by * by);
+                    if (la_ < 1e-9 || lb_ < 1e-9) continue;
+
+                    double cos = (ax * bx + ay * by) / (la_ * lb_);
+                    if (cos <= cosTol) Union(idxA, idxB);
+                }
+        }
+
+        // Agrupar las aristas por componente y ordenar sus puntos a lo largo
+        // de la dirección común de la línea.
+        var groups = new Dictionary<int, List<int>>();
+        for (int i = 0; i < n; i++)
+        {
+            int r = Find(i);
+            if (!groups.TryGetValue(r, out var lst)) groups[r] = lst = [];
+            lst.Add(i);
+        }
+
+        var result = new List<List<Point>>();
+        foreach (var g in groups.Values)
+        {
+            var (a0, b0) = edges[g[0]];
+            double dx = b0.X - a0.X, dy = b0.Y - a0.Y;
+            double len = Math.Sqrt(dx * dx + dy * dy);
+            double ux = dx / len, uy = dy / len;
+
+            var pts = new HashSet<Point>();
+            foreach (var idx in g)
+            {
+                pts.Add(edges[idx].A);
+                pts.Add(edges[idx].B);
+            }
+
+            result.Add([.. pts.OrderBy(p => p.X * ux + p.Y * uy)]);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Dibuja las líneas mínimas extendidas (ver <see cref="GroupCollinearLines"/>).
+    /// Cada sub-segmento usa un color de una paleta; dos sub-segmentos
+    /// consecutivos de la misma línea siempre llevan colores distintos para
+    /// que se aprecien los puntos de corte, aunque el mismo color pueda
+    /// repetirse en otras líneas.
     /// </summary>
     public static Bitmap RenderMinimalLinesBitmap(
         List<List<Point>> chains, int width, int height, int thickness = 2)
@@ -419,17 +545,15 @@ public static class SvgExporter
     }
 
     /// <summary>
-    /// Dibuja los polígonos (caras mínimas) extraídos del grafo, rellenando
+    /// Dibuja el contorno de los polígonos (caras mínimas) extraídos del grafo,
     /// cada uno con un color distinto de la paleta para diferenciarlos.
     /// </summary>
-    public static Bitmap RenderFacesBitmap(List<List<Point>> faces, int width, int height)
+    public static Bitmap RenderFacesBitmap(List<List<Point>> faces, int width, int height, int thickness = 2)
     {
         var bmp = new Bitmap(width, height);
         using var g = Graphics.FromImage(bmp);
         g.Clear(Color.White);
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-
-        using var outline = new Pen(Color.Black, 1);
 
         for (int f = 0; f < faces.Count; f++)
         {
@@ -437,9 +561,8 @@ public static class SvgExporter
             if (face.Count < 3) continue;
 
             var pts = face.Select(p => new PointF((float)p.X, (float)p.Y)).ToArray();
-            using var brush = new SolidBrush(Color.FromArgb(110, VizPalette[f % VizPalette.Length]));
-            g.FillPolygon(brush, pts);
-            g.DrawPolygon(outline, pts);
+            using var pen = new Pen(VizPalette[f % VizPalette.Length], thickness);
+            g.DrawPolygon(pen, pts);
         }
 
         return bmp;

@@ -34,6 +34,56 @@ namespace MagicSvg
         }
 
         /// <summary>
+        /// Elimina del grafo los vértices "redundantes": los de grado 2 cuyas dos
+        /// aristas son colineales (la línea sigue recta y, por tanto, ningún otro
+        /// segmento se cruza realmente en ese punto), uniendo sus dos vecinos
+        /// directamente. Los vértices donde sí se cruza otra línea (grado ≥ 3, o
+        /// grado 2 con cambio de dirección) se conservan, porque son las esquinas
+        /// que necesitan las caras del plano.
+        /// </summary>
+        public Dictionary<Point, HashSet<Point>> Fuse(
+            Dictionary<Point, HashSet<Point>> graph, double angleTolDeg = 1.0)
+        {
+            var result = graph.ToDictionary(kv => kv.Key, kv => new HashSet<Point>(kv.Value));
+            double cosTol = Math.Cos((180.0 - angleTolDeg) * Math.PI / 180.0);
+
+            bool changed = true;
+            while (changed)
+            {
+                changed = false;
+
+                foreach (var v in result.Keys.ToList())
+                {
+                    if (!result.TryGetValue(v, out var nbrs) || nbrs.Count != 2) continue;
+
+                    var it = nbrs.GetEnumerator();
+                    it.MoveNext(); var a = it.Current;
+                    it.MoveNext(); var b = it.Current;
+                    if (a == b) continue;
+
+                    double ax = a.X - v.X, ay = a.Y - v.Y;
+                    double bx = b.X - v.X, by = b.Y - v.Y;
+                    double la = Math.Sqrt(ax * ax + ay * ay);
+                    double lb = Math.Sqrt(bx * bx + by * by);
+                    if (la < 1e-9 || lb < 1e-9) continue;
+
+                    double cos = (ax * bx + ay * by) / (la * lb);
+                    if (cos > cosTol) continue; // no es un paso recto: hay un giro real
+
+                    // v es redundante: unir a y b directamente y eliminar v.
+                    result[a].Remove(v);
+                    result[b].Remove(v);
+                    result[a].Add(b);
+                    result[b].Add(a);
+                    result.Remove(v);
+                    changed = true;
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Para cada segmento, calcula todos los puntos de corte con los demás y los
         /// devuelve ordenados a lo largo del segmento, formando la cadena de
         /// sub-segmentos mínimos en que queda dividido.
